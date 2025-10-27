@@ -1,2 +1,5 @@
-# ClienteServidorC
-Cliente e servidor http feito em C 
+# Cliente
+Cliente http feito em C 
+
+# Servidor
+Servidor http feito em C 
