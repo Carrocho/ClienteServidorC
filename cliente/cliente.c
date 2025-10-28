@@ -1,9 +1,3 @@
-// Fazer com que crie copia de arquivos com o mesmo nome.
-// Fazer makefile
-// Fazer README
-// Revisar servidor
-
-#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,7 +19,7 @@ char *get_filename(const char *url_path) {
     if (slash && *(slash + 1) != '\0')
         return strdup(slash + 1);
     else
-        return strdup("index.html"); // fallback
+        return strdup("index.html");
 }
 
 int main(int argc, char *argv[]) {
