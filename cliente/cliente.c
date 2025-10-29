@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
     char *url = argv[1];
     char host[256], path[1024], port[10] = "80";
 
-    // ---- Parse simples da URL ----
+    // Parse simples da URL
     if (strncmp(url, "http://", 7) == 0)
         url += 7;
 
@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
         *portaHost = '\0';
     }
 
-    // ---- Resolve DNS ----
+    // Resolve DNS
     struct addrinfo hints, *res;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // ---- Cria e conecta o socket ----
+    // Cria e conecta o socket
     int sockfd = -1;
     struct addrinfo *p;
     for (p = res; p != NULL; p = p->ai_next) {
@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // ---- Envia requisição GET ----
+    // Envia requisição GET
     char request[1024];
     int req_len = snprintf(request, sizeof(request),
                            "GET %s HTTP/1.1\r\n"
@@ -98,10 +98,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // ---- Cria pasta "Arquivos" ----
+    // Cria pasta "Arquivos"
     create_directory("arquivos");
 
-    // ---- Recebe resposta ----
+    // Recebe resposta
     char buffer[4096];
     ssize_t bytes_received;
     int header_skipped = 0;

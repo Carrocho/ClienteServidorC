@@ -9,13 +9,11 @@
 #include <limits.h>
 #include <signal.h>
 
-#define PORT 8080           // Porta padrão do servidor
-#define BUF_SIZE 8192       // Tamanho do buffer para leitura/escrita
+#define PORT 8080          
+#define BUF_SIZE 8192    
 
-// Envia uma resposta HTTP simples com um corpo em texto
 void send_response(int client, const char *status, const char *content_type, const char *body) {
     char header[1024];
-    // Monta o cabeçalho HTTP com status, tipo e comprimento do corpo
     snprintf(header, sizeof(header),
              "HTTP/1.1 %s\r\n"
              "Content-Type: %s\r\n"
@@ -33,13 +31,11 @@ void send_response(int client, const char *status, const char *content_type, con
 void send_file(int client, const char *filepath) {
     FILE *file = fopen(filepath, "rb");
     if (!file) {
-        // Se não conseguiu abrir o arquivo, retorna 404
         const char *msg = "<h1>404 Not Found</h1>";
         send_response(client, "404 Not Found", "text/html", msg);
         return;
     }
 
-    // Determina a extensão e escolhe um tipo MIME simples
     const char *ext = strrchr(filepath, '.');
     const char *type = "application/octet-stream";
     
@@ -58,7 +54,6 @@ void send_file(int client, const char *filepath) {
         else if (strcmp(ext, ".docx") == 0) type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     }
 
-    // Obtém o tamanho do arquivo para colocar em Content-Length
     fseek(file, 0, SEEK_END);
     long filesize = ftell(file);
     fseek(file, 0, SEEK_SET);
@@ -80,40 +75,34 @@ void send_file(int client, const char *filepath) {
         send(client, buffer, bytes, 0);
     }
 
-    fclose(file); // Fecha o arquivo
+    fclose(file);
 }
 
 // Gera uma listagem HTML do diretório passado e envia ao cliente
 void list_directory(int client, const char *dirpath, const char *base_url) {
     DIR *dir = opendir(dirpath);
     if (!dir) {
-        // Se não pode abrir o diretório (permissão, inexistente), retorna 403
         const char *msg = "<h1>403 Forbidden</h1>";
         send_response(client, "403 Forbidden", "text/html", msg);
         return;
     }
 
-    // Buffer para construir o corpo HTML; cuidado: tamanho fixo pode ser insuficiente
     char body[8192];
     snprintf(body, sizeof(body), "<html><body><h1>Caminho: %s</h1><ul>", base_url);
 
     struct dirent *entry;
-    // Itera sobre cada entrada do diretório
     while ((entry = readdir(dir)) != NULL) {
-        // Ignora "." e ".."
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
             continue;
 
         // Monta a URL que será usada no link
         char full_url[1024];
         if (strcmp(base_url, "/") == 0) {
-            // Se estamos na raiz, evita // no caminho
             snprintf(full_url, sizeof(full_url), "/%s", entry->d_name);
         } else {
             snprintf(full_url, sizeof(full_url), "%s/%s", base_url, entry->d_name);
         }
         
-        // Monta o caminho no filesystem para verificar se a entrada é diretório
         char full_fs_path[1024];
         snprintf(full_fs_path, sizeof(full_fs_path), "%s/%s", dirpath, entry->d_name);
         
@@ -121,11 +110,9 @@ void list_directory(int client, const char *dirpath, const char *base_url) {
         int is_dir = 0;
         if (stat(full_fs_path, &st) == 0 && S_ISDIR(st.st_mode)) {
             is_dir = 1;
-            // Adiciona barra à URL para diretórios (boa prática)
             strcat(full_url, "/");
         }
         
-        // Adiciona um item <li> com link para o body
         strcat(body, "<li><a href=\"");
         strcat(body, full_url);
         strcat(body, "\">");
@@ -156,7 +143,6 @@ void handle_client(int client, const char *base_dir) {
     char method[8], path[1024];
     sscanf(buffer, "%s %s", method, path);
 
-    // Só aceita GET neste servidor simples
     if (strcmp(method, "GET") != 0) {
         const char *msg = "<h1>405 Method Not Allowed</h1>";
         send_response(client, "405 Method Not Allowed", "text/html", msg);
@@ -168,7 +154,6 @@ void handle_client(int client, const char *base_dir) {
     char fullpath[2048];
     snprintf(fullpath, sizeof(fullpath), "%s%s", base_dir, path);
 
-    // Limpa a barra final para exibir corretamente na listagem ("/pasta/" -> "/pasta")
     char clean_path[1024];
     strcpy(clean_path, path);
     if (strlen(clean_path) > 1 && clean_path[strlen(clean_path)-1] == '/') {
@@ -178,27 +163,22 @@ void handle_client(int client, const char *base_dir) {
     // Obtém informações do arquivo/diretório
     struct stat st;
     if (stat(fullpath, &st) == -1) {
-        // Não encontrou arquivo/diretório solicitado
         const char *msg = "<h1>404 Not Found</h1>";
         send_response(client, "404 Not Found", "text/html", msg);
     } else if (S_ISDIR(st.st_mode)) {
-        // Se for diretório, tenta servir index.html dentro dele
         char indexpath[PATH_MAX];
         snprintf(indexpath, sizeof(indexpath), "%s/index.html", fullpath);
         
         if (stat(indexpath, &st) == 0) {
-            // Se index.html existe, serve o arquivo
             send_file(client, indexpath);
         } else {
-            // Caso contrário, gera a listagem do diretório
             list_directory(client, fullpath, clean_path);
         }
     } else {
-        // Se é arquivo regular, envia o arquivo
         send_file(client, fullpath);
     }
 
-    close(client);  // Fecha a conexão
+    close(client);
 }
 
 int main(int argc, char *argv[]) {
@@ -239,7 +219,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    // Escuta conexões (backlog 10)
+    // Escuta conexões
     if (listen(server_fd, 10) < 0) {
         perror("Erro no listen");
         close(server_fd);
@@ -249,18 +229,16 @@ int main(int argc, char *argv[]) {
     printf("Servidor rodando em: http://localhost:%d/\n", PORT);
     printf("\nServindo arquivos da pasta: %s\n", base_dir);
 
-    // Loop principal: aceita conexões e processa uma por uma (modelo single-thread)
     while (1) {
         client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_len);
         if (client_fd < 0) {
             perror("Erro no accept");
-            continue;  // Em caso de erro, tenta aceitar próxima conexão
+            continue;
         }
         
         handle_client(client_fd, base_dir);
     }
 
-    // Nunca alcançado neste código, mas bom fechar o socket se sair do loop
     close(server_fd);
     return 0;
 }
